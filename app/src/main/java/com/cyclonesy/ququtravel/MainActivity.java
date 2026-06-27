@@ -159,11 +159,169 @@ public class MainActivity extends Activity {
     }
 
     private View createMinePage() {
-        LinearLayout page = createSimplePage("我的", "管理个人资料、优惠券、收藏和客服");
-        page.addView(routeCard("我的收藏", "收藏喜欢的目的地和路线", "查看"), matchWrapMargin(16, 16, 16, 10));
-        page.addView(routeCard("优惠券", "新人专享旅行优惠", "领取"), matchWrapMargin(16, 0, 16, 10));
-        page.addView(routeCard("联系客服", "7x24小时在线支持", "咨询"), matchWrapMargin(16, 0, 16, 10));
+        LinearLayout page = createPageContainer();
+        page.setPadding(0, 0, 0, dp(22));
+
+        page.addView(createProfileHeader(), matchWrapMargin(16, 18, 16, 12));
+        page.addView(createVipCard(), matchWrapMargin(16, 0, 16, 12));
+
+        page.addView(sectionTitle("我的订单"));
+        page.addView(createOrderShortcutCard(), matchWrapMargin(16, 8, 16, 16));
+
+        page.addView(sectionTitle("常用功能"));
+        page.addView(createToolGrid(new String[][]{
+                {"⭐", "我的收藏"},
+                {"🎫", "优惠券"},
+                {"📍", "常用旅客"},
+                {"🧾", "发票抬头"},
+                {"🗺", "旅行足迹"},
+                {"💬", "消息中心"},
+                {"🎁", "邀请有礼"},
+                {"⚙", "设置"}
+        }), matchWrapMargin(16, 8, 16, 16));
+
+        page.addView(sectionTitle("服务中心"));
+        page.addView(menuRow("🎧", "在线客服", "7x24小时为你解决出行问题"), matchWrapMargin(16, 8, 16, 1));
+        page.addView(menuRow("🛡", "出行保障", "退改保障、保险服务、应急帮助"), matchWrapMargin(16, 0, 16, 1));
+        page.addView(menuRow("📖", "旅行攻略", "查看目的地攻略和避坑指南"), matchWrapMargin(16, 0, 16, 1));
+        page.addView(menuRow("📞", "意见反馈", "帮助我们把去趣做得更好"), matchWrapMargin(16, 0, 16, 18));
+
         return wrapScroll(page);
+    }
+
+    private View createProfileHeader() {
+        LinearLayout header = card(primaryColor, dp(150));
+        header.setPadding(dp(18), dp(20), dp(18), dp(18));
+
+        LinearLayout topRow = new LinearLayout(this);
+        topRow.setOrientation(LinearLayout.HORIZONTAL);
+        topRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView avatar = text("趣", 24, primaryColor, true);
+        avatar.setGravity(Gravity.CENTER);
+        avatar.setBackgroundColor(Color.WHITE);
+        topRow.addView(avatar, new LinearLayout.LayoutParams(dp(58), dp(58)));
+
+        LinearLayout userInfo = new LinearLayout(this);
+        userInfo.setOrientation(LinearLayout.VERTICAL);
+        userInfo.setPadding(dp(14), 0, 0, 0);
+        userInfo.addView(text("去趣旅行家", 22, Color.WHITE, true));
+        userInfo.addView(space(4));
+        userInfo.addView(text("点击完善资料 · 解锁更多旅行权益", 13, Color.WHITE, false));
+        topRow.addView(userInfo, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+
+        TextView edit = chip("编辑", Color.WHITE, primaryColor);
+        topRow.addView(edit);
+        header.addView(topRow);
+
+        header.addView(space(18));
+
+        LinearLayout statRow = new LinearLayout(this);
+        statRow.setOrientation(LinearLayout.HORIZONTAL);
+        statRow.addView(profileStat("12", "收藏"), weightNoMargin());
+        statRow.addView(profileStat("3", "足迹"), weightNoMargin());
+        statRow.addView(profileStat("5", "优惠券"), weightNoMargin());
+        statRow.addView(profileStat("Lv.2", "会员"), weightNoMargin());
+        header.addView(statRow);
+
+        return header;
+    }
+
+    private View createVipCard() {
+        LinearLayout vip = card(Color.parseColor("#2b2b2b"), dp(72));
+        vip.setPadding(dp(18), dp(14), dp(18), dp(14));
+        vip.addView(text("黑金会员 · 专属旅行权益", 17, Color.parseColor("#ffd89b"), true));
+        vip.addView(space(6));
+        vip.addView(text("酒店折扣、专属客服、景点快速入园", 13, Color.WHITE, false));
+        return vip;
+    }
+
+    private View createOrderShortcutCard() {
+        LinearLayout card = card(Color.WHITE, dp(96));
+        card.setPadding(dp(8), dp(14), dp(8), dp(14));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.addView(orderShortcut("💳", "待支付"), weightNoMargin());
+        row.addView(orderShortcut("🧳", "待出行"), weightNoMargin());
+        row.addView(orderShortcut("✍", "待评价"), weightNoMargin());
+        row.addView(orderShortcut("↩", "退款/售后"), weightNoMargin());
+        card.addView(row);
+        return card;
+    }
+
+    private View createToolGrid(String[][] tools) {
+        LinearLayout card = card(Color.WHITE, dp(160));
+        card.setPadding(dp(8), dp(16), dp(8), dp(12));
+
+        LinearLayout row1 = new LinearLayout(this);
+        row1.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout row2 = new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+
+        for (int i = 0; i < tools.length; i++) {
+            View item = toolItem(tools[i][0], tools[i][1]);
+            if (i < 4) {
+                row1.addView(item, weightNoMargin());
+            } else {
+                row2.addView(item, weightNoMargin());
+            }
+        }
+
+        card.addView(row1);
+        card.addView(space(12));
+        card.addView(row2);
+        return card;
+    }
+
+    private View profileStat(String value, String label) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER);
+        item.addView(text(value, 18, Color.WHITE, true));
+        item.addView(text(label, 12, Color.WHITE, false));
+        return item;
+    }
+
+    private View orderShortcut(String icon, String label) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER);
+        item.addView(text(icon, 24, textColor, false));
+        item.addView(space(6));
+        item.addView(text(label, 13, textColor, false));
+        return item;
+    }
+
+    private View toolItem(String icon, String label) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER);
+        item.addView(text(icon, 24, textColor, false));
+        item.addView(space(6));
+        item.addView(text(label, 13, textColor, false));
+        return item;
+    }
+
+    private View menuRow(String icon, String title, String desc) {
+        LinearLayout row = card(Color.WHITE, dp(70));
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16), dp(12), dp(16), dp(12));
+
+        TextView iconView = text(icon, 24, textColor, false);
+        iconView.setGravity(Gravity.CENTER);
+        row.addView(iconView, new LinearLayout.LayoutParams(dp(40), dp(40)));
+
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.VERTICAL);
+        info.setPadding(dp(12), 0, 0, 0);
+        info.addView(text(title, 16, textColor, true));
+        info.addView(space(3));
+        info.addView(text(desc, 12, subTextColor, false));
+        row.addView(info, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+
+        row.addView(text("›", 26, subTextColor, false));
+        return row;
     }
 
     private LinearLayout createSimplePage(String titleText, String subTitleText) {
@@ -284,6 +442,10 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         lp.setMargins(dp(4), 0, dp(4), 0);
         return lp;
+    }
+
+    private LinearLayout.LayoutParams weightNoMargin() {
+        return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
     }
 
     private int dp(int value) {
