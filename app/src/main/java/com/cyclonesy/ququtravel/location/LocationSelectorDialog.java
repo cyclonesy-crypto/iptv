@@ -35,6 +35,8 @@ public class LocationSelectorDialog {
     }
 
     public void show() {
+        LocationDataSource.initialize(context);
+
         provinces.clear();
         provinces.addAll(LocationDataSource.getProvinces());
 
@@ -93,7 +95,6 @@ public class LocationSelectorDialog {
     private void initPickers() {
         int provinceIndex = safeIndexOf(provinces, initialSelection.getProvince());
         bindPicker(provincePicker, provinces, provinceIndex);
-
         updateCities(provinceIndex, initialSelection.getCity(), initialSelection.getDistrict());
     }
 
