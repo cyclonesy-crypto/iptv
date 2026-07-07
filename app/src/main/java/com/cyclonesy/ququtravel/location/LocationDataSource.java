@@ -1,36 +1,43 @@
 package com.cyclonesy.ququtravel.location;
 
+import android.content.Context;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class LocationDataSource {
-    private static final Map<String, Map<String, List<String>>> DATA = new LinkedHashMap<>();
 
-    static {
-        add("上海市", "上海市", "黄浦区", "徐汇区", "浦东新区", "闵行区");
-        add("北京市", "北京市", "东城区", "朝阳区", "海淀区", "通州区");
-        add("广东省", "广州市", "越秀区", "天河区", "番禺区", "黄埔区");
-        add("广东省", "深圳市", "福田区", "南山区", "宝安区", "龙岗区");
-        add("四川省", "成都市", "锦江区", "青羊区", "武侯区", "高新区");
-        add("浙江省", "杭州市", "上城区", "西湖区", "滨江区", "余杭区");
-        add("江苏省", "南京市", "玄武区", "秦淮区", "鼓楼区", "江宁区");
-        add("重庆市", "重庆市", "渝中区", "江北区", "南岸区", "渝北区");
-        add("陕西省", "西安市", "新城区", "碑林区", "雁塔区", "长安区");
-        add("福建省", "厦门市", "思明区", "湖里区", "集美区", "海沧区");
+    private static final String ASSET_NAME = "china_regions.json";
+    private static final Map<String, Map<String, List<String>>> DATA = new LinkedHashMap<>();
+    private static boolean initialized;
+
+    private LocationDataSource() {
     }
 
-    private LocationDataSource() {}
-
-    private static void add(String province, String city, String... districts) {
-        Map<String, List<String>> cities = DATA.get(province);
-        if (cities == null) {
-            cities = new LinkedHashMap<>();
-            DATA.put(province, cities);
+    public static synchronized void initialize(Context context) {
+        if (initialized) {
+            return;
         }
-        cities.put(city, Arrays.asList(districts));
+
+        DATA.clear();
+        try {
+            String json = readAsset(context.getApplicationContext(), ASSET_NAME);
+            parseRegions(new JSONArray(json));
+            initialized = !DATA.isEmpty();
+        } catch (Exception e) {
+            initialized = false;
+            DATA.clear();
+            addFallbackData();
+        }
     }
 
     public static List<String> getProvinces() {
@@ -44,13 +51,87 @@ public final class LocationDataSource {
 
     public static List<String> getDistricts(String province, String city) {
         Map<String, List<String>> cities = DATA.get(province);
-        if (cities == null || cities.get(city) == null) {
+        if (cities == null) {
             return new ArrayList<>();
         }
-        return new ArrayList<>(cities.get(city));
+        List<String> districts = cities.get(city);
+        return districts == null ? new ArrayList<>() : new ArrayList<>(districts);
     }
 
     public static LocationSelection getDefaultSelection() {
         return new LocationSelection("上海市", "上海市", "浦东新区");
+    }
+
+    private static void parseRegions(JSONArray provinces) throws Exception {
+        for (int i = 0; i < provinces.length(); i++) {
+            JSONObject provinceObject = provinces.getJSONObject(i);
+            String provinceName = provinceObject.optString("name");
+            JSONArray cityArray = provinceObject.optJSONArray("children");
+            if (provinceName.isEmpty() || cityArray == null) {
+                continue;
+            }
+
+            Map<String, List<String>> cityMap = new LinkedHashMap<>();
+            for (int j = 0; j < cityArray.length(); j++) {
+                JSONObject cityObject = cityArray.getJSONObject(j);
+                String rawCityName = cityObject.optString("name");
+                JSONArray districtArray = cityObject.optJSONArray("children");
+                if (rawCityName.isEmpty() || districtArray == null) {
+                    continue;
+                }
+
+                String cityName = normalizeCityName(provinceName, rawCityName);
+                List<String> districts = new ArrayList<>();
+                for (int k = 0; k < districtArray.length(); k++) {
+                    String districtName = districtArray.getJSONObject(k).optString("name");
+                    if (!districtName.isEmpty()) {
+                        districts.add(districtName);
+                    }
+                }
+
+                if (!districts.isEmpty()) {
+                    List<String> existing = cityMap.get(cityName);
+                    if (existing == null) {
+                        cityMap.put(cityName, districts);
+                    } else {
+                        existing.addAll(districts);
+                    }
+                }
+            }
+
+            if (!cityMap.isEmpty()) {
+                DATA.put(provinceName, cityMap);
+            }
+        }
+    }
+
+    private static String normalizeCityName(String provinceName, String cityName) {
+        if ("市辖区".equals(cityName) || "县".equals(cityName)) {
+            return provinceName;
+        }
+        return cityName;
+    }
+
+    private static String readAsset(Context context, String fileName) throws Exception {
+        StringBuilder builder = new StringBuilder();
+        try (InputStream inputStream = context.getAssets().open(fileName);
+             BufferedReader reader = new BufferedReader(
+                     new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line);
+            }
+        }
+        return builder.toString();
+    }
+
+    private static void addFallbackData() {
+        Map<String, List<String>> cityMap = new LinkedHashMap<>();
+        List<String> districts = new ArrayList<>();
+        districts.add("浦东新区");
+        districts.add("黄浦区");
+        districts.add("徐汇区");
+        cityMap.put("上海市", districts);
+        DATA.put("上海市", cityMap);
     }
 }
