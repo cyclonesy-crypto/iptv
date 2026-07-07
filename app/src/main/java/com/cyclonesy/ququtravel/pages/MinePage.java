@@ -23,91 +23,80 @@ public class MinePage extends LinearLayout {
 
     private View createContent() {
         LinearLayout page = UiKit.pageContainer(context);
-        page.setPadding(0, 0, 0, UiKit.dp(context, 22));
+        page.setPadding(0, UiKit.dp(context, 16), 0, UiKit.dp(context, 22));
 
-        page.addView(createProfileHeader(), UiKit.matchWrapMargin(context, 16, 18, 16, 12));
-        page.addView(createVipCard(), UiKit.matchWrapMargin(context, 16, 0, 16, 12));
+        page.addView(createGuestHeader(), UiKit.matchWrapMargin(context, 16, 8, 16, 12));
+        page.addView(createBenefitCard(), UiKit.matchWrapMargin(context, 16, 0, 16, 16));
 
-        page.addView(UiKit.sectionTitle(context, "我的订单"));
-        page.addView(createOrderShortcutCard(), UiKit.matchWrapMargin(context, 16, 8, 16, 16));
+        page.addView(UiKit.sectionTitle(context, "我的旅行资产"));
+        page.addView(createAssetBoard(), UiKit.matchWrapMargin(context, 16, 8, 16, 16));
 
         page.addView(UiKit.sectionTitle(context, "常用功能"));
         page.addView(createToolGrid(new String[][]{
-                {"⭐", "我的收藏"},
+                {"⭐", "收藏夹"},
+                {"🗺", "浏览足迹"},
                 {"🎫", "优惠券"},
                 {"📍", "常用旅客"},
                 {"🧾", "发票抬头"},
-                {"🗺", "旅行足迹"},
                 {"💬", "消息中心"},
                 {"🎁", "邀请有礼"},
                 {"⚙", "设置"}
         }), UiKit.matchWrapMargin(context, 16, 8, 16, 16));
 
         page.addView(UiKit.sectionTitle(context, "服务中心"));
-        page.addView(menuRow("🎧", "在线客服", "7x24小时为你解决出行问题"), UiKit.matchWrapMargin(context, 16, 8, 16, 1));
-        page.addView(menuRow("🛡", "出行保障", "退改保障、保险服务、应急帮助"), UiKit.matchWrapMargin(context, 16, 0, 16, 1));
-        page.addView(menuRow("📖", "旅行攻略", "查看目的地攻略和避坑指南"), UiKit.matchWrapMargin(context, 16, 0, 16, 1));
-        page.addView(menuRow("📞", "意见反馈", "帮助我们把去趣做得更好"), UiKit.matchWrapMargin(context, 16, 0, 16, 18));
+        page.addView(menuRow("🎧", "在线客服", "不用登录也可以咨询旅行问题"), UiKit.matchWrapMargin(context, 16, 8, 16, 1));
+        page.addView(menuRow("🛡", "出行保障", "查看退改、保险、应急帮助"), UiKit.matchWrapMargin(context, 16, 0, 16, 1));
+        page.addView(menuRow("📖", "攻略中心", "目的地玩法、避坑指南、路线建议"), UiKit.matchWrapMargin(context, 16, 0, 16, 1));
+        page.addView(menuRow("📞", "意见反馈", "告诉我们你想要的旅行功能"), UiKit.matchWrapMargin(context, 16, 0, 16, 18));
 
         return UiKit.scrollPage(context, page);
     }
 
-    private View createProfileHeader() {
-        LinearLayout header = UiKit.card(context, UiKit.PRIMARY_COLOR, 150);
+    private View createGuestHeader() {
+        LinearLayout header = UiKit.card(context, Color.parseColor("#2b2b2b"), 164);
         header.setPadding(UiKit.dp(context, 18), UiKit.dp(context, 20), UiKit.dp(context, 18), UiKit.dp(context, 18));
 
         LinearLayout topRow = new LinearLayout(context);
         topRow.setOrientation(HORIZONTAL);
         topRow.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView avatar = UiKit.text(context, "趣", 24, UiKit.PRIMARY_COLOR, true);
+        TextView avatar = UiKit.text(context, "趣", 26, Color.parseColor("#2b2b2b"), true);
         avatar.setGravity(Gravity.CENTER);
-        avatar.setBackgroundColor(Color.WHITE);
-        topRow.addView(avatar, new LinearLayout.LayoutParams(UiKit.dp(context, 58), UiKit.dp(context, 58)));
+        avatar.setBackgroundColor(Color.parseColor("#ffd89b"));
+        topRow.addView(avatar, new LinearLayout.LayoutParams(UiKit.dp(context, 60), UiKit.dp(context, 60)));
 
         LinearLayout userInfo = new LinearLayout(context);
         userInfo.setOrientation(VERTICAL);
         userInfo.setPadding(UiKit.dp(context, 14), 0, 0, 0);
-        userInfo.addView(UiKit.text(context, "去趣旅行家", 22, Color.WHITE, true));
+        userInfo.addView(UiKit.text(context, "游客旅行家", 22, Color.WHITE, true));
         userInfo.addView(UiKit.space(context, 4));
-        userInfo.addView(UiKit.text(context, "点击完善资料 · 解锁更多旅行权益", 13, Color.WHITE, false));
+        userInfo.addView(UiKit.text(context, "先逛逛也可以，喜欢的路线可稍后保存", 13, Color.WHITE, false));
         topRow.addView(userInfo, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
-        TextView edit = UiKit.chip(context, "编辑", Color.WHITE, UiKit.PRIMARY_COLOR);
-        topRow.addView(edit);
         header.addView(topRow);
-
         header.addView(UiKit.space(context, 18));
-
-        LinearLayout statRow = new LinearLayout(context);
-        statRow.setOrientation(HORIZONTAL);
-        statRow.addView(profileStat("12", "收藏"), UiKit.weightNoMargin());
-        statRow.addView(profileStat("3", "足迹"), UiKit.weightNoMargin());
-        statRow.addView(profileStat("5", "优惠券"), UiKit.weightNoMargin());
-        statRow.addView(profileStat("Lv.2", "会员"), UiKit.weightNoMargin());
-        header.addView(statRow);
-
+        header.addView(UiKit.chip(context, "开启去趣体验  →", UiKit.PRIMARY_COLOR, Color.WHITE));
         return header;
     }
 
-    private View createVipCard() {
-        LinearLayout vip = UiKit.card(context, Color.parseColor("#2b2b2b"), 72);
-        vip.setPadding(UiKit.dp(context, 18), UiKit.dp(context, 14), UiKit.dp(context, 18), UiKit.dp(context, 14));
-        vip.addView(UiKit.text(context, "黑金会员 · 专属旅行权益", 17, Color.parseColor("#ffd89b"), true));
-        vip.addView(UiKit.space(context, 6));
-        vip.addView(UiKit.text(context, "酒店折扣、专属客服、景点快速入园", 13, Color.WHITE, false));
-        return vip;
+    private View createBenefitCard() {
+        LinearLayout card = UiKit.card(context, Color.parseColor("#fff7e8"), 92);
+        card.setPadding(UiKit.dp(context, 18), UiKit.dp(context, 16), UiKit.dp(context, 18), UiKit.dp(context, 16));
+        card.addView(UiKit.text(context, "去趣会员权益", 18, UiKit.TEXT_COLOR, true));
+        card.addView(UiKit.space(context, 8));
+        card.addView(UiKit.text(context, "酒店折扣 · 专属客服 · 景点快速入园 · 生日旅行券", 13, UiKit.SUB_TEXT_COLOR, false));
+        return card;
     }
 
-    private View createOrderShortcutCard() {
-        LinearLayout card = UiKit.card(context, Color.WHITE, 96);
-        card.setPadding(UiKit.dp(context, 8), UiKit.dp(context, 14), UiKit.dp(context, 8), UiKit.dp(context, 14));
+    private View createAssetBoard() {
+        LinearLayout card = UiKit.card(context, Color.WHITE, 112);
+        card.setPadding(UiKit.dp(context, 8), UiKit.dp(context, 16), UiKit.dp(context, 8), UiKit.dp(context, 16));
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(HORIZONTAL);
-        row.addView(orderShortcut("💳", "待支付"), UiKit.weightNoMargin());
-        row.addView(orderShortcut("🧳", "待出行"), UiKit.weightNoMargin());
-        row.addView(orderShortcut("✍", "待评价"), UiKit.weightNoMargin());
-        row.addView(orderShortcut("↩", "退款/售后"), UiKit.weightNoMargin());
+        row.addView(assetItem("12", "收藏"), UiKit.weightNoMargin());
+        row.addView(assetItem("3", "足迹"), UiKit.weightNoMargin());
+        row.addView(assetItem("5", "优惠券"), UiKit.weightNoMargin());
+        row.addView(assetItem("Lv.0", "游客"), UiKit.weightNoMargin());
         card.addView(row);
         return card;
     }
@@ -136,20 +125,11 @@ public class MinePage extends LinearLayout {
         return card;
     }
 
-    private View profileStat(String value, String label) {
+    private View assetItem(String value, String label) {
         LinearLayout item = new LinearLayout(context);
         item.setOrientation(VERTICAL);
         item.setGravity(Gravity.CENTER);
-        item.addView(UiKit.text(context, value, 18, Color.WHITE, true));
-        item.addView(UiKit.text(context, label, 12, Color.WHITE, false));
-        return item;
-    }
-
-    private View orderShortcut(String icon, String label) {
-        LinearLayout item = new LinearLayout(context);
-        item.setOrientation(VERTICAL);
-        item.setGravity(Gravity.CENTER);
-        item.addView(UiKit.text(context, icon, 24, UiKit.TEXT_COLOR, false));
+        item.addView(UiKit.text(context, value, 22, UiKit.PRIMARY_COLOR, true));
         item.addView(UiKit.space(context, 6));
         item.addView(UiKit.text(context, label, 13, UiKit.TEXT_COLOR, false));
         return item;
