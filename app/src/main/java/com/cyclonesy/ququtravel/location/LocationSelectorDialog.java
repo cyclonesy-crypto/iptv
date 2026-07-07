@@ -2,13 +2,14 @@ package com.cyclonesy.ququtravel.location;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.graphics.Color;
+import android.view.Gravity;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
+import android.widget.NumberPicker;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class LocationSelectorDialog {
@@ -16,6 +17,14 @@ public class LocationSelectorDialog {
     private final Context context;
     private final LocationSelection initialSelection;
     private final OnLocationSelectedListener listener;
+
+    private final List<String> provinces = new ArrayList<>();
+    private List<String> cities = new ArrayList<>();
+    private List<String> districts = new ArrayList<>();
+
+    private NumberPicker provincePicker;
+    private NumberPicker cityPicker;
+    private NumberPicker districtPicker;
 
     public LocationSelectorDialog(Context context,
                                   LocationSelection initialSelection,
@@ -26,129 +35,137 @@ public class LocationSelectorDialog {
     }
 
     public void show() {
-        LinearLayout container = new LinearLayout(context);
-        container.setOrientation(LinearLayout.VERTICAL);
-        int padding = dp(20);
-        container.setPadding(padding, dp(8), padding, 0);
+        provinces.clear();
+        provinces.addAll(LocationDataSource.getProvinces());
 
-        Spinner provinceSpinner = new Spinner(context);
-        Spinner citySpinner = new Spinner(context);
-        Spinner districtSpinner = new Spinner(context);
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(16), dp(8), dp(16), 0);
 
-        container.addView(label("省 / 直辖市"));
-        container.addView(provinceSpinner, matchWrap());
-        container.addView(label("城市"));
-        container.addView(citySpinner, matchWrap());
-        container.addView(label("区 / 县"));
-        container.addView(districtSpinner, matchWrap());
+        root.addView(createHeader());
+        root.addView(createWheelRow(), new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(220)
+        ));
 
-        List<String> provinces = LocationDataSource.getProvinces();
-        bindSpinner(provinceSpinner, provinces);
-
-        int provinceIndex = indexOf(provinces, initialSelection.getProvince());
-        provinceSpinner.setSelection(provinceIndex);
-        updateCities(citySpinner, districtSpinner, provinces.get(provinceIndex), initialSelection);
-
-        provinceSpinner.setOnItemSelectedListener(new SimpleItemSelectedListener(position -> {
-            String province = provinces.get(position);
-            updateCities(citySpinner, districtSpinner, province, null);
-        }));
-
-        citySpinner.setOnItemSelectedListener(new SimpleItemSelectedListener(position -> {
-            String province = (String) provinceSpinner.getSelectedItem();
-            String city = (String) citySpinner.getSelectedItem();
-            if (province != null && city != null) {
-                bindSpinner(districtSpinner, LocationDataSource.getDistricts(province, city));
-            }
-        }));
+        initPickers();
+        bindListeners();
 
         new AlertDialog.Builder(context)
                 .setTitle("选择地区")
-                .setView(container)
+                .setView(root)
                 .setNegativeButton("取消", null)
-                .setPositiveButton("确定", (dialog, which) -> {
-                    String province = (String) provinceSpinner.getSelectedItem();
-                    String city = (String) citySpinner.getSelectedItem();
-                    String district = (String) districtSpinner.getSelectedItem();
-                    listener.onLocationSelected(new LocationSelection(province, city, district));
-                })
+                .setPositiveButton("确定", (dialog, which) -> listener.onLocationSelected(
+                        new LocationSelection(
+                                provinces.get(provincePicker.getValue()),
+                                cities.get(cityPicker.getValue()),
+                                districts.get(districtPicker.getValue())
+                        )
+                ))
                 .show();
     }
 
-    private void updateCities(Spinner citySpinner,
-                              Spinner districtSpinner,
-                              String province,
-                              LocationSelection preferred) {
-        List<String> cities = LocationDataSource.getCities(province);
-        bindSpinner(citySpinner, cities);
-        if (cities.isEmpty()) {
-            bindSpinner(districtSpinner, LocationDataSource.getDistricts(province, ""));
-            return;
-        }
+    private LinearLayout createHeader() {
+        LinearLayout header = new LinearLayout(context);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER);
+        header.addView(headerText("省 / 直辖市"), weightParams());
+        header.addView(headerText("城市"), weightParams());
+        header.addView(headerText("区 / 县"), weightParams());
+        return header;
+    }
 
-        int cityIndex = preferred == null ? 0 : indexOf(cities, preferred.getCity());
-        citySpinner.setSelection(cityIndex);
+    private LinearLayout createWheelRow() {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
+
+        provincePicker = createPicker();
+        cityPicker = createPicker();
+        districtPicker = createPicker();
+
+        row.addView(provincePicker, weightMatchParams());
+        row.addView(cityPicker, weightMatchParams());
+        row.addView(districtPicker, weightMatchParams());
+        return row;
+    }
+
+    private void initPickers() {
+        int provinceIndex = safeIndexOf(provinces, initialSelection.getProvince());
+        bindPicker(provincePicker, provinces, provinceIndex);
+
+        updateCities(provinceIndex, initialSelection.getCity(), initialSelection.getDistrict());
+    }
+
+    private void bindListeners() {
+        provincePicker.setOnValueChangedListener((picker, oldVal, newVal) ->
+                updateCities(newVal, null, null));
+
+        cityPicker.setOnValueChangedListener((picker, oldVal, newVal) ->
+                updateDistricts(newVal, null));
+    }
+
+    private void updateCities(int provinceIndex, String preferredCity, String preferredDistrict) {
+        String province = provinces.get(provinceIndex);
+        cities = LocationDataSource.getCities(province);
+
+        int cityIndex = safeIndexOf(cities, preferredCity);
+        bindPicker(cityPicker, cities, cityIndex);
+        updateDistricts(cityIndex, preferredDistrict);
+    }
+
+    private void updateDistricts(int cityIndex, String preferredDistrict) {
+        String province = provinces.get(provincePicker.getValue());
         String city = cities.get(cityIndex);
+        districts = LocationDataSource.getDistricts(province, city);
 
-        List<String> districts = LocationDataSource.getDistricts(province, city);
-        bindSpinner(districtSpinner, districts);
-        if (preferred != null) {
-            districtSpinner.setSelection(indexOf(districts, preferred.getDistrict()));
-        }
+        int districtIndex = safeIndexOf(districts, preferredDistrict);
+        bindPicker(districtPicker, districts, districtIndex);
     }
 
-    private void bindSpinner(Spinner spinner, List<String> items) {
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                context,
-                android.R.layout.simple_spinner_item,
-                items
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
+    private NumberPicker createPicker() {
+        NumberPicker picker = new NumberPicker(context);
+        picker.setDescendantFocusability(NumberPicker.FOCUS_BLOCK_DESCENDANTS);
+        picker.setWrapSelectorWheel(true);
+        return picker;
     }
 
-    private TextView label(String text) {
+    private void bindPicker(NumberPicker picker, List<String> values, int selectedIndex) {
+        picker.setDisplayedValues(null);
+        picker.setMinValue(0);
+        picker.setMaxValue(Math.max(values.size() - 1, 0));
+        picker.setDisplayedValues(values.toArray(new String[0]));
+        picker.setValue(Math.min(selectedIndex, Math.max(values.size() - 1, 0)));
+        picker.setWrapSelectorWheel(values.size() > 2);
+    }
+
+    private TextView headerText(String text) {
         TextView view = new TextView(context);
         view.setText(text);
         view.setTextSize(13);
-        view.setPadding(0, dp(10), 0, dp(4));
+        view.setTextColor(Color.parseColor("#6B7F86"));
+        view.setGravity(Gravity.CENTER);
+        view.setPadding(0, dp(8), 0, dp(4));
         return view;
     }
 
-    private LinearLayout.LayoutParams matchWrap() {
-        return new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
+    private LinearLayout.LayoutParams weightParams() {
+        return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
     }
 
-    private int indexOf(List<String> items, String value) {
-        int index = items.indexOf(value);
+    private LinearLayout.LayoutParams weightMatchParams() {
+        return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
+    }
+
+    private int safeIndexOf(List<String> values, String target) {
+        if (values == null || values.isEmpty()) {
+            return 0;
+        }
+        int index = target == null ? -1 : values.indexOf(target);
         return index >= 0 ? index : 0;
     }
 
     private int dp(int value) {
         return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);
-    }
-
-    private static class SimpleItemSelectedListener implements AdapterView.OnItemSelectedListener {
-        interface Callback {
-            void onSelected(int position);
-        }
-
-        private final Callback callback;
-
-        SimpleItemSelectedListener(Callback callback) {
-            this.callback = callback;
-        }
-
-        @Override
-        public void onItemSelected(AdapterView<?> parent, android.view.View view, int position, long id) {
-            callback.onSelected(position);
-        }
-
-        @Override
-        public void onNothingSelected(AdapterView<?> parent) {
-        }
     }
 }
