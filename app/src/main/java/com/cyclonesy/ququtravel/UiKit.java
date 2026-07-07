@@ -12,10 +12,12 @@ import android.widget.TextView;
 
 public final class UiKit {
 
-    public static final int PRIMARY_COLOR = Color.parseColor("#ff6f3c");
-    public static final int TEXT_COLOR = Color.parseColor("#222222");
-    public static final int SUB_TEXT_COLOR = Color.parseColor("#777777");
-    public static final int BG_COLOR = Color.parseColor("#f7f8fa");
+    public static final int PRIMARY_COLOR = Color.parseColor("#167C80");
+    public static final int SECONDARY_COLOR = Color.parseColor("#2F6B8A");
+    public static final int ACCENT_COLOR = Color.parseColor("#8FC7C2");
+    public static final int TEXT_COLOR = Color.parseColor("#17313A");
+    public static final int SUB_TEXT_COLOR = Color.parseColor("#6B7F86");
+    public static final int BG_COLOR = Color.parseColor("#F2F7F7");
     public static final int CARD_COLOR = Color.WHITE;
 
     private UiKit() {
@@ -31,6 +33,7 @@ public final class UiKit {
 
     public static ScrollView scrollPage(Context context, LinearLayout page) {
         ScrollView scrollView = new ScrollView(context);
+        scrollView.setFillViewport(true);
         scrollView.addView(page);
         return scrollView;
     }
@@ -63,7 +66,7 @@ public final class UiKit {
         card.addView(space(context, 6));
         card.addView(text(context, desc, 14, SUB_TEXT_COLOR, false));
         card.addView(space(context, 12));
-        card.addView(chip(context, tag, Color.parseColor("#fff1eb"), PRIMARY_COLOR));
+        card.addView(chip(context, tag, Color.parseColor("#E5F3F1"), PRIMARY_COLOR));
         return card;
     }
 
