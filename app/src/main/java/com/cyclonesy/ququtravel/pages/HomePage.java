@@ -1,6 +1,7 @@
 package com.cyclonesy.ququtravel.pages;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.view.Gravity;
@@ -9,6 +10,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.cyclonesy.ququtravel.TravelDetailActivity;
 import com.cyclonesy.ququtravel.UiKit;
 import com.cyclonesy.ququtravel.location.LocationDataSource;
 import com.cyclonesy.ququtravel.location.LocationSelection;
@@ -70,12 +72,7 @@ public class HomePage extends LinearLayout {
         left.addView(UiKit.text(context, "发现你身边的旅行灵感", 14, UiKit.SUB_TEXT_COLOR, false));
         row.addView(left, new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1));
 
-        TextView location = UiKit.chip(
-                context,
-                "📍 " + selectedLocation.getDisplayName() + " ▼",
-                Color.WHITE,
-                UiKit.PRIMARY_COLOR
-        );
+        TextView location = UiKit.chip(context, "📍 " + selectedLocation.getDisplayName() + " ▼", Color.WHITE, UiKit.PRIMARY_COLOR);
         location.setOnClickListener(v -> showLocationSelector());
         row.addView(location);
         return row;
@@ -135,6 +132,12 @@ public class HomePage extends LinearLayout {
         hero.addView(tags);
         hero.addView(UiKit.space(context, 16));
         hero.addView(UiKit.text(context, "探索附近好去处  →", 16, Color.WHITE, true));
+        hero.setOnClickListener(v -> openDetail(
+                districtName() + "周末灵感",
+                "城市漫游、周边度假、特色美食",
+                "附近好去处",
+                "查看周末方案"
+        ));
         return hero;
     }
 
@@ -143,7 +146,29 @@ public class HomePage extends LinearLayout {
         searchBox.setGravity(Gravity.CENTER_VERTICAL);
         searchBox.setPadding(UiKit.dp(context, 18), 0, UiKit.dp(context, 18), 0);
         searchBox.addView(UiKit.text(context, "🔍 搜索" + cityName() + "景点、酒店、美食", 15, UiKit.SUB_TEXT_COLOR, false));
+        searchBox.setOnClickListener(v -> showSearchDialog());
         return searchBox;
+    }
+
+    private void showSearchDialog() {
+        final android.widget.EditText input = new android.widget.EditText(context);
+        input.setHint("输入景点、酒店或美食");
+        input.setSingleLine(true);
+        int padding = UiKit.dp(context, 20);
+        input.setPadding(padding, padding / 2, padding, padding / 2);
+
+        new android.app.AlertDialog.Builder(context)
+                .setTitle("搜索" + cityName())
+                .setView(input)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("搜索", (dialog, which) -> {
+                    String keyword = input.getText().toString().trim();
+                    if (keyword.isEmpty()) {
+                        keyword = cityName() + "热门玩法";
+                    }
+                    openDetail(keyword, "为你整理相关景点、酒店、美食与路线", "搜索结果", "查看推荐");
+                })
+                .show();
     }
 
     private View createInspirationRow() {
@@ -163,6 +188,7 @@ public class HomePage extends LinearLayout {
         item.addView(UiKit.space(context, 6));
         item.addView(UiKit.text(context, title, 15, UiKit.TEXT_COLOR, true));
         item.addView(UiKit.text(context, desc, 11, UiKit.SUB_TEXT_COLOR, false));
+        item.setOnClickListener(v -> openDetail(cityName() + title, desc, "旅行灵感", "查看精选方案"));
         return item;
     }
 
@@ -178,6 +204,7 @@ public class HomePage extends LinearLayout {
         card.addView(UiKit.text(context, desc, 14, UiKit.SUB_TEXT_COLOR, false));
         card.addView(UiKit.space(context, 12));
         card.addView(UiKit.text(context, price, 20, UiKit.SECONDARY_COLOR, true));
+        card.setOnClickListener(v -> openDetail(title, desc, badge, price));
         return card;
     }
 
@@ -206,7 +233,17 @@ public class HomePage extends LinearLayout {
         card.addView(UiKit.text(context, desc, 14, UiKit.SUB_TEXT_COLOR, false));
         card.addView(UiKit.space(context, 18));
         card.addView(UiKit.chip(context, score, Color.parseColor("#EAF3F8"), UiKit.SECONDARY_COLOR));
+        card.setOnClickListener(v -> openDetail(city, desc, "从" + cityName() + "出发 · " + score, "查看出行方案"));
         return card;
+    }
+
+    private void openDetail(String title, String subtitle, String type, String price) {
+        Intent intent = new Intent(context, TravelDetailActivity.class);
+        intent.putExtra(TravelDetailActivity.EXTRA_TITLE, title);
+        intent.putExtra(TravelDetailActivity.EXTRA_SUBTITLE, subtitle);
+        intent.putExtra(TravelDetailActivity.EXTRA_TYPE, type);
+        intent.putExtra(TravelDetailActivity.EXTRA_PRICE, price);
+        context.startActivity(intent);
     }
 
     private String[] getLocalDeals(String city) {
