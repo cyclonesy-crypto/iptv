@@ -1,6 +1,5 @@
 package com.cyclonesy.ququtravel.pages;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -11,20 +10,24 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.cyclonesy.ququtravel.UiKit;
+import com.cyclonesy.ququtravel.location.LocationDataSource;
+import com.cyclonesy.ququtravel.location.LocationSelection;
+import com.cyclonesy.ququtravel.location.LocationSelectorDialog;
 
 public class HomePage extends LinearLayout {
 
     private static final String PREFS_NAME = "travel_prefs";
+    private static final String KEY_PROVINCE = "selected_province";
     private static final String KEY_CITY = "selected_city";
+    private static final String KEY_DISTRICT = "selected_district";
 
     private final Context context;
-    private String selectedCity;
+    private LocationSelection selectedLocation;
 
     public HomePage(Context context) {
         super(context);
         this.context = context;
-        this.selectedCity = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(KEY_CITY, "上海");
+        this.selectedLocation = loadLocation();
         setOrientation(VERTICAL);
         renderPage();
     }
@@ -42,15 +45,15 @@ public class HomePage extends LinearLayout {
         page.addView(createHeroCard(), UiKit.matchWrapMargin(context, 16, 0, 16, 12));
         page.addView(createSearchBox(), UiKit.matchWrapMargin(context, 16, 0, 16, 16));
 
-        page.addView(UiKit.sectionTitle(context, selectedCity + "旅行灵感"));
+        page.addView(UiKit.sectionTitle(context, cityName() + "旅行灵感"));
         page.addView(createInspirationRow(), UiKit.matchWrapMargin(context, 16, 8, 16, 18));
 
-        page.addView(UiKit.sectionTitle(context, "本地精选"));
-        String[] local = getLocalDeals(selectedCity);
+        page.addView(UiKit.sectionTitle(context, districtName() + "本地精选"));
+        String[] local = getLocalDeals(cityName());
         page.addView(dealCard(local[0], local[1], local[2], "本地推荐"), UiKit.matchWrapMargin(context, 16, 8, 16, 10));
         page.addView(dealCard(local[3], local[4], local[5], "近期热门"), UiKit.matchWrapMargin(context, 16, 0, 16, 18));
 
-        page.addView(UiKit.sectionTitle(context, "从" + selectedCity + "出发"));
+        page.addView(UiKit.sectionTitle(context, "从" + cityName() + "出发"));
         page.addView(createHorizontalDestinations());
 
         return UiKit.scrollPage(context, page);
@@ -67,41 +70,57 @@ public class HomePage extends LinearLayout {
         left.addView(UiKit.text(context, "发现你身边的旅行灵感", 14, UiKit.SUB_TEXT_COLOR, false));
         row.addView(left, new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1));
 
-        TextView city = UiKit.chip(context, "📍 " + selectedCity + " ▼", Color.WHITE, UiKit.PRIMARY_COLOR);
-        city.setOnClickListener(v -> showCitySelector());
-        row.addView(city);
+        TextView location = UiKit.chip(
+                context,
+                "📍 " + selectedLocation.getDisplayName() + " ▼",
+                Color.WHITE,
+                UiKit.PRIMARY_COLOR
+        );
+        location.setOnClickListener(v -> showLocationSelector());
+        row.addView(location);
         return row;
     }
 
-    private void showCitySelector() {
-        String[] cities = {"上海", "北京", "广州", "深圳", "成都", "杭州", "南京", "重庆", "西安", "厦门"};
-        int checked = 0;
-        for (int i = 0; i < cities.length; i++) {
-            if (cities[i].equals(selectedCity)) {
-                checked = i;
-                break;
-            }
-        }
+    private void showLocationSelector() {
+        new LocationSelectorDialog(context, selectedLocation, selection -> {
+            selectedLocation = selection;
+            saveLocation(selection);
+            renderPage();
+        }).show();
+    }
 
-        final int[] selectedIndex = {checked};
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setTitle("选择当前地区")
-                .setSingleChoiceItems(cities, checked, (d, which) -> selectedIndex[0] = which)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("确定", (d, which) -> {
-                    selectedCity = cities[selectedIndex[0]];
-                    SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                    preferences.edit().putString(KEY_CITY, selectedCity).apply();
-                    renderPage();
-                })
-                .create();
-        dialog.show();
+    private LocationSelection loadLocation() {
+        SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        LocationSelection defaults = LocationDataSource.getDefaultSelection();
+        return new LocationSelection(
+                preferences.getString(KEY_PROVINCE, defaults.getProvince()),
+                preferences.getString(KEY_CITY, defaults.getCity()),
+                preferences.getString(KEY_DISTRICT, defaults.getDistrict())
+        );
+    }
+
+    private void saveLocation(LocationSelection selection) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_PROVINCE, selection.getProvince())
+                .putString(KEY_CITY, selection.getCity())
+                .putString(KEY_DISTRICT, selection.getDistrict())
+                .apply();
+    }
+
+    private String cityName() {
+        return selectedLocation.getCity().replace("市", "");
+    }
+
+    private String districtName() {
+        String district = selectedLocation.getDistrict();
+        return district == null || district.isEmpty() ? cityName() : district;
     }
 
     private View createHeroCard() {
         LinearLayout hero = UiKit.card(context, UiKit.PRIMARY_COLOR, 178);
         hero.setPadding(UiKit.dp(context, 20), UiKit.dp(context, 22), UiKit.dp(context, 20), UiKit.dp(context, 18));
-        hero.addView(UiKit.text(context, selectedCity + "周末灵感", 28, Color.WHITE, true));
+        hero.addView(UiKit.text(context, districtName() + "周末灵感", 28, Color.WHITE, true));
         hero.addView(UiKit.space(context, 8));
         hero.addView(UiKit.text(context, "城市漫游、周边度假、特色美食", 15, Color.WHITE, false));
         hero.addView(UiKit.space(context, 18));
@@ -123,7 +142,7 @@ public class HomePage extends LinearLayout {
         LinearLayout searchBox = UiKit.card(context, Color.WHITE, 52);
         searchBox.setGravity(Gravity.CENTER_VERTICAL);
         searchBox.setPadding(UiKit.dp(context, 18), 0, UiKit.dp(context, 18), 0);
-        searchBox.addView(UiKit.text(context, "🔍 搜索" + selectedCity + "景点、酒店、美食", 15, UiKit.SUB_TEXT_COLOR, false));
+        searchBox.addView(UiKit.text(context, "🔍 搜索" + cityName() + "景点、酒店、美食", 15, UiKit.SUB_TEXT_COLOR, false));
         return searchBox;
     }
 
@@ -163,7 +182,7 @@ public class HomePage extends LinearLayout {
     }
 
     private View createHorizontalDestinations() {
-        String[][] data = getNearbyCities(selectedCity);
+        String[][] data = getNearbyCities(cityName());
         HorizontalScrollView hsv = new HorizontalScrollView(context);
         hsv.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(context);
